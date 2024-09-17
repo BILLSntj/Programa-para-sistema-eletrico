@@ -1,0 +1,487 @@
+//**********************************************************************
+//             CONTRIBUIÇÃO PET AutoNet/IFMT  
+// Obs: O nome desse arquivo (Script) é: sinaisEletricosv(t)i(t)p(t).sci
+//
+//     Para utilizar esse Script, atender as seguintes instruções:
+//   1) Instalar o software Scilab
+//   2) Salvar esse Script(programa) no diretório da sua escolha, p. ex., c:\documentos
+//   3) Executar o Scilab
+//   4) Alterar o diretório de execução do Scilab para  c:\documentos, seguindo: 
+//       4.1)Abrir Menu Arquivo do console do Scilab
+//       4.2)Escolher a opção "Alterar o diretório atual...."
+//       4.3)Atribuir para o diretório do passo 2)onde está salvo o Script.
+//    5)Executar o programa, sinaisEletricosv(t)i(t)p(t).sci, usando o comando:
+//              -->exec('sinaisEletricosv(t)i(t)p(t).sci', -1);  <enter>
+// OUOUOU   OU   OU
+// no editor do script clique no botão do menu superior "Salvar e Executar"
+//****************************************************************************
+//                     início do Script
+//**************FUNÇÕES ESPECÍFICAS  - PET AutoNet/IFMT  **************************//
+
+function [f,Vm,Im,NroPeriodo]= leituraFVmImNroPeriodo()
+   f=input("   Digite o valor da frequência [HZ] -->  ");
+   Vm=input('   Digite o valor da tensão elétrica máxima (Vm --> 0)[V] -->  ');
+   Im=input('   Digite o valor da corrente elétrica máxima (Im --> 0)[A] -->  '); 
+   NroPeriodo=input('   Digite o número de ciclos (>= 1) -->  '); 
+endfunction   
+
+function [Vrms,Irms]= calculoValoresEficazesVI(Vm,Im)
+    
+    Vrms = Vm/sqrt(2);  // cálculo tensão elétrica rms Vm/raiz(2))
+    Irms = Im/sqrt(2); // cálculo corrente elétrica rms Im/raiz(2))
+endfunction
+
+
+function [T]= calculoPeriodos(NroPeriodo)
+    T=NroPeriodo*(1/f);  //número de períodos e CÁCULO DO PERÍODO
+endfunction
+
+function [t,dimensaoVetort]= duracaoTempoDeEstudoVett(T);
+ //   t=-0.01:0.0001:T; // t - vetor tempo com passo igual 0.0001
+ t=-T:0.0001:T;
+    dimensaoVetort=length(t);  // tamnho do vetor t
+endfunction
+
+function [tetaVGraus,tetaVRadianos]=leituraCalculoTetaV();
+  tetaVGraus=input('   Digite o Ângulo de FASE da Tensão Elétrica EM GRAUS [º] -->  '); 
+  tetaVRadianos = (tetaVGraus*%pi)/180; // ângulo em radiano   
+  
+endfunction
+
+function  [tetaIGraus,tetaIRadianos]=leituraCalculoTetaI();
+  tetaIGraus=input('   Digite o Ângulo de FASE da Corrente Elétrica EM GRAUS [º] -->  '); 
+  tetaIRadianos = (tetaIGraus*%pi)/180; // ângulo em radiano
+  
+endfunction
+
+function[v,i,instante,Vt,It,Vk,instanteV,Ik,instanteI]=funcaoinstataneaDe_vi(Vm,Im,f,t,T,tetaVRadianos,tetaIRadianos) 
+    //printf("*** Observação: /n **")
+
+    instante = input("   Instante para obter os valores de V e I em milisegundos t(ms) -->  ");
+    instante = instante*0.001; //(conversão milisegundo para segundos)
+    Vk = input("   Digite o Valor de V no intervalo (-Vm e +Vm) para obter o instante que V é atingido [V] -->  ");
+    Ik = input("   Digite o Valor de I no intervalo (-Im e +Im) para obter o instante que I é atingido [A] -->  ");
+    v = Vm*sin(2*%pi*f*instante+tetaVRadianos);
+    i = Im*sin(2*%pi*f*instante+tetaIRadianos); 
+    // cálculo do valor de v e i para o mesmo instante t
+    Vt = Vm*sin(2*%pi*f*instante+tetaVRadianos);
+    It = Im*sin(2*%pi*f*instante+tetaIRadianos); 
+    if Vk>=0 then //Verifica se a tensão está no semiciclo positivo
+        instanteV = abs(asin((Vk/Vm)-tetaVRadianos))/(2*%pi*f);
+    else instanteV = asin(abs(Vk/Vm)-tetaVRadianos)/(2*%pi*f) + 1/(2*f);
+    end
+    if Ik>=0 then //Verifica se a corrente está no semiciclo positivo
+        instanteI = abs(asin((Ik/Im)-tetaIRadianos))/(2*%pi*f);
+    else instanteI = asin(abs(Ik/Im)-tetaIRadianos)/(2*%pi*f) + 1/(2*f);
+    end
+    
+endfunction
+
+function [FP]=calculoFatorDePotencia(tetaVGraus,tetaIGraus) 
+    FP = abs(cosd(abs((tetaVGraus-tetaIGraus))));  // Cáluclo do Fator de Potência
+    
+// VERIFICAR SE O FP ESTÁ EM FASE(RESISTIVO), ADIANTADO(CAPACITIVO) OU ATRASADO(INDUTIVO)   
+endfunction
+ 
+function [FPc,DefasamentoVI]=caracteristicaFP(tetaVGraus,tetaIGraus) 
+    Flag1=0;
+    Flag2=0;
+    // VERIFICAR SE O FP ESTÁ EM FASE(RESISTIVO), ADIANTADO(CAPACITIVO) OU ATRASADO(INDUTIVO) 
+    auxTetaVGraus = tetaVGraus;
+    if (abs(auxTetaVGraus) >= 360)
+        if (auxTetaVGraus > 0)
+            while (auxTetaVGraus >= 360)
+                 auxTetaVGraus = auxTetaVGraus -360;
+            end
+        else
+            while (abs(auxTetaVGraus) >= 360)
+                 auxTetaVGraus = auxTetaVGraus +360;
+            end
+         end   
+    end       
+   
+    auxTetaIGraus = tetaIGraus;
+    if (abs(auxTetaIGraus) >= 360)
+        if (auxTetaIGraus > 0)
+            while (auxTetaIGraus >= 360)
+                 auxTetaIGraus = auxTetaIGraus -360;
+            end
+        else
+            //while (auxTetaIGraus < 0)
+            while  (abs(auxTetaIGraus) >=360)  
+                 auxTetaIGraus = auxTetaIGraus +360;
+            end
+         end   
+    end       
+     
+   
+   if (abs(cosd(auxTetaVGraus-auxTetaIGraus)) == 1  )  then
+        FPc = "Em fase (resistivo)";
+        Flag1 = 1;
+   end 
+   disp(cosd(abs(auxTetaVGraus-auxTetaIGraus)))
+   
+   if (((cosd(abs((auxTetaVGraus-auxTetaIGraus))) == 0))) then
+            if((auxTetaIGraus > auxTetaVGraus)) then
+                  FPc = "Adiantado (puramente capacitivo)";   
+             else
+                 FPc = "Atrasado (puramente indutivo)"; 
+            end 
+       Flag2 = 1; 
+    end  
+    disp(Flag1) 
+    if ((Flag1 == 0)&(Flag2 == 0)) then      
+          if (auxTetaIGraus > auxTetaVGraus) then
+                  FPc = "Adiantado (capacitivo)";   
+             else
+                 FPc = "Atrasado (indutivo)"; 
+           end      
+   end
+         DefasamentoVI = abs(auxTetaVGraus - auxTetaIGraus);
+endfunction
+
+function [FPC, C, Itc, Ic, Icarga, Z_TOTAL, Z_TOTAL2, Stc, Stc_REC, P, Q, esc, Iaux]=correçãofatorpotencia(Vrms, Irms, tetaVGraus, tetaIGraus, FP, f)
+    Modulo_V_RMS = Vrms; 
+    Angulo_V = tetaVGraus;
+    Modulo_I_RMS = Irms; 
+    Angulo_I = tetaIGraus;
+    
+    radV = %pi*Angulo_V/180;  // conversão para radianos
+    radI = %pi*Angulo_I/180; 
+    V_polar=Modulo_V_RMS*%e^(radV*%i);  // fasor i %i parte imaginária - forma polar
+    I_polar=Modulo_I_RMS*%e^(radI*%i);  // fasor V %i parte imaginária - forma polar
+    // Define a mensagem formatada com base no fator de potência
+    mensagem = msprintf('   O fator de potência está em %4.3f! Deseja corrigir (1) sim ou (2) não? ', FP);
+
+    // Solicita uma entrada do usuário com a mensagem formatada
+    esc = input(mensagem);
+
+    // Verifica a resposta do usuário
+    if esc == 1 then
+        // O usuário escolheu corrigir o fator de potência
+        fpd = input("   Digite o valor do fator de potência desejado entre 0 e 1 --> ");
+        while(fpd > 1)then
+            printf("   O valor digitado é inválido!\n");
+            fpd = input("   Digite o valor do fator de potência desejado entre 0 e 1 novamente --> ");
+        end
+        while(fpd < 0)then
+            printf("   O valor digitado é inválido!\n");
+            fpd = input("   Digite o valor do fator de potência desejado entre 0 e 1 novamente --> ");
+        end
+        // Adicione validação para verificar se fpd é um número válido, se necessário
+        //disp("O valor do fator de potência desejado é: " + string(fpd));
+    elseif esc == 2 then
+        // O usuário escolheu não corrigir o fator de potência
+        //disp("O usuário escolheu não corrigir o fator de potência.");
+        FPC = msprintf('O fator de potência não foi corrigido, logo o fator de potência segue sendo: %4.3f \n',FP);
+        C = msprintf("Como não foi desejado corrigir o fator e potência, não é necessário capacitor!")
+        Ic = msprintf("A corrente no capacitor é nula! pois não foi solicitado a correção do fator de potência");
+        modulo_Icarga = abs(I_polar);
+        ângulo_Icarga = (180*atan(imag(I_polar),real(I_polar)))/%pi;
+        Icarga = msprintf("A corrente na carga é: %4.3f |__ %4.3f [A]",modulo_Icarga,ângulo_Icarga);
+        Itc = msprintf("A corrente total permanece a mesma!");
+        Z_TOTAL = msprintf("A impedância do sistema permanece a mesma sem a correção do fator de potência");
+        Z_TOTAL2 = msprintf("");
+        Stc = msprintf("A potência aparente sem correção do fator de potência segue igual!");
+        Stc_REC = msprintf("");
+        P = msprintf("");
+        Q = msprintf("");
+        Iaux = 0;
+        return;
+    end
+    
+    I_Conjugado = conj(I_polar);
+    Pot_Aparente_S = V_polar*I_Conjugado;
+    
+    Qr = real(Pot_Aparente_S)*tan(acos(fpd));
+    Qins = imag(Pot_Aparente_S);
+    Qc = Qins - Qr;
+    FPC = msprintf("O fator de potência foi corrigido para: %4.3f\n",fpd);
+    aux = abs((Qc/(Vrms^2*2*%pi*f)))*1000000;
+    C = msprintf("A capacitância necessária para corrigir o fator de potência é:  %4.3f uF (microfaraday)\n",aux)
+    Xc = Vrms^2/Qc;
+    Zc = Xc*%e^((-%pi/2)*%i);
+    Icaux = V_polar/Zc;
+    modulo_Ic = abs(Icaux);
+    ângulo_Ic = (180*atan(imag(Icaux),real(Icaux)))/%pi;
+    Ic = msprintf("O fasor corrente no capacitor é: %4.3f |__ %4.3f° [A]",modulo_Ic,ângulo_Ic);
+    modulo_Icarga = abs(I_polar);
+    ângulo_Icarga = (180*atan(imag(I_polar),real(I_polar)))/%pi;
+    Icarga = msprintf("O fasor corrente na carga é: %4.3f |__ %4.3f° [A]",modulo_Icarga,ângulo_Icarga);
+    Iaux = I_polar + Icaux;
+    modulo_Itc = abs(Iaux);
+    ângulo_Itc = (180*atan(imag(Iaux),real(Iaux)))/%pi;
+    Itc = msprintf("O fasor corrente total após a inserção do banco de capacitores é: %4.3f |__ %4.3f° [A]",modulo_Itc, ângulo_Itc);
+    Z_TOTAL_aux = V_polar/Iaux;
+    modulo_Z_TOTAL = abs(Z_TOTAL_aux);
+    ângulo_Z_TOTAL = (180*atan(imag(Z_TOTAL_aux),real(Z_TOTAL_aux)))/%pi;
+    Z_TOTAL = msprintf("A impedância do sistema pós correnção do fator de potência é: %4.3f |__ %4.3f° [ohm]",modulo_Z_TOTAL,ângulo_Z_TOTAL);
+    Z_TOTAL2 =  msprintf("A impedância do sistema pós correnção do fator de potência é: %4.3f + %4.3f [ohm]",real(Z_TOTAL_aux),imag(Z_TOTAL_aux));
+    Itc_conjugado = conj(Iaux);
+    Stc_aux = V_polar*Itc_conjugado;
+    modulo_Stc = abs(Stc_aux);
+    ângulo_Stc = (180*atan(imag(Stc_aux),real(Stc_aux)))/%pi;
+    Stc = msprintf("A potência aparente pós correção do fator de potência é: %4.3f |__ %4.3f° [VA]",modulo_Stc,ângulo_Stc);
+    Stc_REC = msprintf("A potência aparente pós correção do fator de potência é: %4.3f + %4.3f [VA]",real(Stc_aux),imag(Stc_aux));
+    P = msprintf("Potência ativa P pós correção do fator de potência: %4.3f [W]",real(Stc_aux));
+    Q = msprintf("Potência reativa Q pós correção do fator de potência: %4.3f [VAr]",abs(imag(Stc_aux)));
+    
+endfunction
+
+function [REPORT]=RELATORIO(f,T,Vm,Vrms,Im,Irms,instante,Vk,instanteV,Ik,instanteI,Vt,It,pm,prms,pvt,tetaVGraus,tetaIGraus,DefasamentoVI, FP,FPc, FPC, C, Itc,Ic, Icarga, Z_TOTAL, Z_TOTAL2, Stc, Stc_REC, P, Q);
+
+printf("\n+++++++++              CONTRIBUIÇÃO PET AutoNet/IFMT   +++++++++ \n");
+printf("           *********            RELATÓRIO    ***********            \n"); 
+printf("&&&&&& PARÂMETROS ELÉTRICOS DOS SINAIS DA TENSÃO, DA CORRENTE E DA POTÊNCIA &&&&&\n");
+printf("   A)--> Frequência (F) = %i %s\n",f,"[HZ]");
+printf("   B)--> Velocidade Angular (w = 2*pi*F) = %4.3f %s\n",(2*%pi*f),"[Rad/s]");
+printf("   C)--> Período (T = 1/F) = %1.3f %s\n ",((1/f)*1000),"[ms]")
+printf("   D)--> Tensão Elétrica Máxima (Vm) = %4.3f %s\n ",Vm,"[V]")
+printf("   E)--> Tensão Elétrica Eficaz (RMS)(Vrms = Vm/raiz(2) = %4.3f %s\n ",Vrms,"[V]")
+printf("   F)--> Valor da Tensão Elétrica (V=Vm*sen(w*t+TetaVRadianos) no instante t = %4.3f %s %5.2f %s\n ",instante*1000,"[ms]=",Vt,"[V]")
+printf("   G)--> O 1º instante (t=[ArcSen(V/Vm)-TetaVradianos)]/w) que a tensão elétrica atinge o valor de %4.2f [V] ocorre em t =  %4.3f [ms]  \n ",Vk,instanteV*1000)
+printf("   H)--> Corrente Elétrica Máxima (Im) = %4.3f %s\n ",Im,"[A]")
+printf("   I)--> Corrente Elétrica Eficaz (RMS)(Irms = Im/raiz(2) = %4.3f %s\n ",Irms,"[A]")
+printf("   J)--> Valor da Corrente Elétrica (I=Im*sen(w*t+TetaIRadianos) no instante  t = %4.3f %s %5.2f %s\n ",instante*1000,"[ms]=",It,"[A]")
+printf("   K)--> O 1º instante (t=[ArcSen(I/Im)-TetaIradianos)]/w)que a corrente elétrica atinge o valor de %4.2f [A] ocorre em t =  %4.3f [ms]  \n ",Ik,instanteI*1000)
+printf("   L)--> Potência Ativa Média (Pm = (Vm*Im*Cos(TetaV-TetaI))/2) = %5.3f %s\n ",pm,"[W]")
+printf("   M)--> Potência Ativa Eficaz (RMS)(Prms = V*I*Cos(TetaV-TetaI)) = %5.3f %s\n ",prms,"[W]")
+printf("   N)--> Valor da Potência Ativa (p=v(t)*i(t)) no instante t = %4.3f %s %5.2f %s\n ",instante,"[s]=",pvt,"[W]")
+printf("   O)--> Ângulo de FASE em Graus da Tensão Elétrica = %4.3f %s\n ",tetaVGraus,"[°]")
+printf("   P)--> Ângulo de FASE em Graus da Corrente Elétrica = %4.3f %s\n ",tetaIGraus,"[°]")
+printf("   Q)--> Defasamento resultante em graus resultante entre Tensão e Corrente elétrica = %5.3f %s\n ",DefasamentoVI,"[°]")
+printf("   R)--> Fator de Potência FP (FP = cos(mod(TetaV-TetaI)) )= %1.2f %s\n ", FP,FPc)
+printf("    Esses parâmetros definem o comportamento dos sinais v(t), i(t) e p(t) mostrados na janela gráfica 0. \n ")
+printf(" ################ FASORES DE TENSÃO E CORRENTE ############ \n");
+Modulo_V_RMS = Vrms; 
+Angulo_V = tetaVGraus;
+
+printf("   S)--> Fasor Tensão V = %4.3f%s %4.3f %s %s\n ",Modulo_V_RMS,"|__",Angulo_V,"[°]","[V]")
+
+Modulo_I_RMS = Irms; 
+Angulo_I = tetaIGraus;
+
+printf("   T)--> Fasor Corrente I = %4.3f%s %4.3f %s %s\n ",Modulo_I_RMS,"|__",Angulo_I,"[°]","[A]")
+printf(" ################ DIAGRAMA DE IMPEDÂNCIA ############ \n");
+   
+radV = %pi*Angulo_V/180;  // conversão para radianos
+radI = %pi*Angulo_I/180; 
+V_polar=Modulo_V_RMS*%e^(radV*%i);  // fasor i %i parte imaginária - forma polar
+I_polar=Modulo_I_RMS*%e^(radI*%i);  // fasor V %i parte imaginária - forma polar
+
+Z_EQUIVALENTE = V_polar / I_polar;
+rad_Z_EQUIVALENTE = atan(imag(Z_EQUIVALENTE),real(Z_EQUIVALENTE));
+modulo_Z_EQUIVALENTE = abs(Z_EQUIVALENTE);
+angulo_Z_EQUIVALENTE = (180*atan(imag(Z_EQUIVALENTE),real(Z_EQUIVALENTE)))/%pi;
+
+printf("   U)--> impedância Equivalente = %4.3f  %s %4.3f %s %s \n",modulo_Z_EQUIVALENTE ,"|_",angulo_Z_EQUIVALENTE,"°","[Ohm]");
+printf("   V)--> impedância Equivalente = %f + %fi %s \n",real(Z_EQUIVALENTE),imag(Z_EQUIVALENTE),"[Ohm]");
+
+printf(" ################ TRIÂNGULO DE POTÊNCIA ############ \n");
+I_Conjugado = conj(I_polar);
+Pot_Aparente_S = V_polar*I_Conjugado;
+printf("   S)--> Potência Aparente = %4.3f + %4.3fi %s \n",real(Pot_Aparente_S),imag(Pot_Aparente_S),"[VA]");
+Angulo_PotAparente_S=(180*atan(imag(Pot_Aparente_S),real(Pot_Aparente_S)))/%pi
+printf("   S)--> Potência Aparente = %4.3f  %s %4.3f %s %s \n",abs(Pot_Aparente_S) ,"|_",Angulo_PotAparente_S,"°","[VA]");
+
+Pot_Ativa_P = real(Pot_Aparente_S);
+Pot_Ativa_Q = imag(Pot_Aparente_S);
+printf("   W)--> Potência Ativa P = %4.3f %s \n",real(Pot_Aparente_S),"[W]");
+printf("   X)--> Potência Reativa Q = %4.3f %s \n",abs(imag(Pot_Aparente_S)),"[VAr]");
+
+printf(" ################ CORREÇÃO DO FATOR DE POTÊNCIA ############ \n");
+printf("   Y)--> %s\n",FPC)
+//printf("   Y)--> O Fator de Potência corrigido é de %4.3f\n", FPC);
+printf("   Z)--> %s\n", C);
+printf("   A2)--> %s\n",Ic);
+printf("   B2)--> %s\n",Icarga);
+printf("   C2)--> %s\n", Itc);
+printf(" ################ IMPEDÂNCIA CORRIGIDA ############ \n");
+printf("   D2)--> %s\n",Z_TOTAL);
+printf("   E2)--> %s\n",Z_TOTAL2);
+printf(" ################ TRIÂNGULO DE POTÊNCIA CORRIGIDO ############ \n");
+printf("   F2)--> %s\n",Stc);
+printf("   G2)--> %s\n",Stc_REC);
+printf("   H2)--> %s\n",P);
+printf("   I2)--> %s\n",Q);
+
+printf(" ################ CONTRIBUIÇÃO PET AutoNet/IFMT ############ \n");
+
+  REPORT=1;  
+endfunction
+
+function [ty]= plotarGraficos(T,p,PMed,PRMS,f,tetaVRadianos, tetaIRadianos,Vm,Im, esc, Iaux) 
+     //set("current_figure", 0);
+     t=-T:0.0001:T;
+     v = Vm*sin(2*%pi*f*t+tetaVRadianos);
+     i = Im*sin(2*%pi*f*t+tetaIRadianos);
+     pi = ((Vm*Im)/2)*((cos(tetaVRadianos-tetaIRadianos))-(cos(4*%pi*f*t +tetaVRadianos+tetaIRadianos)));
+     if Vm/Im < 11.454 then
+         subplot(211);
+         plot(t*1000,v,'r-',t*1000,i,'b-');
+         title('Sinais Elétricos v(t), i(t), p(t) - Contribuição PET AutoNet','color','b','fontsize',5,'edgecolor','r');
+         legend(['v(t)';'i(t)'])
+         xlabel "t[ms]" fontsize 3 color magenta4 
+         ylabel "i[A],  v[V]" fontsize 3 color magenta4 rotation 90
+         a=gca();
+         a.tight_limits = "on";
+         a.x_location = "middle"
+         a.y_location = "middle"
+         xgrid(3,0.01,2) 
+     else
+         subplot(211);
+         plot(t*1000,v,'r-',t*1000,10*i,'b-');
+         title ('Sinais Elétricos v(t), i(t), p(t) - Contribuição PET AutoNet','color','b','fontsize',5,'edgecolor','r');
+         legend(['v(t)';'i(t) para efeito visual a corrente foi multiplicada por 10'])
+         xlabel "t[ms]" fontsize 3 color magenta4
+         ylabel "i[A],   v[V]" fontsize 3 color magenta4 rotation 90
+         a=gca();
+         a.tight_limits = "on";
+         a.x_location = "middle"
+         a.y_location = "middle"
+         xgrid(3,0.01,2) 
+     end
+     
+     if max(pi)>=1000 then
+        subplot(212);
+        plot(t*1000,pi*0.001,'m-',t*1000,PRMS*0.001,'k-');
+        legend(['p(t)';'Prms(t)'])
+        xlabel('TEMPO[ms]')
+        ylabel('p[kW], PRMS[kW]')
+        a=gca();
+        a.tight_limits = "on";
+        xgrid(3,0.01,2)
+     else 
+        subplot(212);
+        plot(t*1000,pi,'m-',t*1000,PRMS,'k-');
+        legend(['p(t)';'Prms(t)'])
+        xlabel('TEMPO[ms]')
+        ylabel('p[W],  PRMS[W]')
+        a=gca();
+        a.tight_limits = "on";
+        xgrid(3,0.01,2)
+     end
+     
+     if (esc == 1) then
+         scf();
+         Itc_max = abs(Iaux)*sqrt(2);
+         Itc_def = atan(imag(Iaux),real(Iaux));
+         Itc_graf = Itc_max*sin(2*%pi*f*t+Itc_def);
+         Ptc = ((Vm*Itc_max)/2)*((cos(tetaVRadianos-Itc_def))-(cos(4*%pi*f*t +tetaVRadianos+Itc_def)));
+         PRMStc = ((Vm*Itc_max)/2)*cos(tetaVRadianos-Itc_def);
+         if Vm/Im < 11.454 then
+            subplot(211);
+            plot(t*1000,v,'r-',t*1000,Itc_graf,'b-');
+            title('Sinais Elétricos corrigidos v(t), i(t), p(t) - Contribuição PET AutoNet','color','b','fontsize',5,'edgecolor','r');
+            legend(['v(t)';'i(t)'])
+            xlabel "t[ms]" fontsize 3 color magenta4 
+            ylabel "i[A],  v[V]" fontsize 3 color magenta4 rotation 90
+            a=gca();
+            a.tight_limits = "on";
+            a.x_location = "middle"
+            a.y_location = "middle"
+            xgrid(3,0.01,2) 
+         else
+            subplot(211);
+            plot(t*1000,v,'r-',t*1000,10*Itc_graf,'b-');
+            title ('Sinais Elétricos corrigidos v(t), i(t), p(t) - Contribuição PET AutoNet','color','b','fontsize',5,'edgecolor','r');
+            legend(['v(t)';'i(t) para efeito visual a corrente foi multiplicada por 10'])
+            xlabel "t[ms]" fontsize 3 color magenta4
+            ylabel "i[A],   v[V]" fontsize 3 color magenta4 rotation 90
+            a=gca();
+            a.tight_limits = "on";
+            a.x_location = "middle"
+            a.y_location = "middle"
+            xgrid(3,0.01,2) 
+         end
+         
+         if max(pi)>=1000 then
+            subplot(212);
+            plot(t*1000,Ptc*0.001,'m-',t*1000,PRMStc*0.001,'k-');
+            legend(['p(t)';'Prms(t)'])
+            xlabel('TEMPO[ms]')
+            ylabel('p[kW], PRMS[kW]')
+            a=gca();
+            a.tight_limits = "on";
+            xgrid(3,0.01,2)
+         else 
+            subplot(212);
+            plot(t*1000,Ptc,'m-',t*1000,PRMStc,'k-');
+            legend(['p(t)';'Prms(t)'])
+            xlabel('TEMPO[ms]')
+            ylabel('p[W],  PRMS[W]')
+            a=gca();
+            a.tight_limits = "on"
+            xgrid(3,0.01,2)
+         end
+     end
+     
+     //a.x_location = "middle"; 
+     //a.y_location = "middle";  
+     /*legend(['v(t)';'i(t)';'p(t)';'Prms(t)'])
+     xlabel('TEMPO[s]')
+     ylabel('  v,  i,  p,  PRMS') */
+     //xset("thickness",1)
+    // ty=locate(3,1)
+    ty=1;
+     
+     
+endfunction
+    
+// ************Término funções específicas   ***********************
+// ***************INÍCIO PROGRAMA PRINCIPAL  ***********************
+// são chamadas as rotinas 
+funcprot(0);
+clc;
+ [f,Vm,Im,NroPeriodo]= leituraFVmImNroPeriodo();
+
+ [Vrms,Irms]= calculoValoresEficazesVI(Vm,Im);
+
+ [T]= calculoPeriodos(NroPeriodo);
+
+ [t,dimensaoVetort]= duracaoTempoDeEstudoVett(T);
+
+
+ flagContinuar = 1;
+
+while (flagContinuar == 1)
+
+  [tetaVGraus,tetaVRadianos]=leituraCalculoTetaV();
+  [tetaIGraus,tetaIRadianos]=leituraCalculoTetaI();
+ 
+  [v,i,instante,Vt,It,Vk,instanteV,Ik,instanteI]=funcaoinstataneaDe_vi(Vm,Im,f,t,T,tetaVRadianos,tetaIRadianos); 
+   
+  [FP]=calculoFatorDePotencia(tetaVGraus,tetaIGraus);  
+    
+  [FPc,DefasamentoVI]=caracteristicaFP(tetaVGraus,tetaIGraus);
+  
+  [FPC, C, Itc, Ic, Icarga, Z_TOTAL, Z_TOTAL2, Stc, Stc_REC, P, Q, esc, Iaux]=correçãofatorpotencia(Vrms, Irms, tetaVGraus, tetaIGraus, FP, f)
+  
+   pm=((Vm*Im)/2)*FP; //Cáluclo potência média
+    
+   prms = Vrms*Irms*FP;         //Cáluclo potência eficaz
+    
+   Contador=1;
+
+    while (Contador <= dimensaoVetort)
+      PMed(Contador)=pm; 
+      PRMS(Contador)= prms;
+      Contador=Contador+1;
+    end
+    // potêrncia no instante t
+    pvt = (Vm*sin(2*%pi*f*instante+tetaVRadianos))*(Im*sin(2*%pi*f*instante+tetaIRadianos));
+   
+
+    pvi= i'*v;
+ 
+    p=diag(pvi);  // potência instantânea para plotar o gráfico
+    ///// mostra os resultados no monitor
+    [REPORT]=RELATORIO(f,T,Vm,Vrms,Im,Irms,instante,Vk,instanteV,Ik,instanteI,Vt,It,pm,prms,pvt,tetaVGraus,tetaIGraus,DefasamentoVI,FP,FPc, FPC, C, Itc, Ic, Icarga, Z_TOTAL, Z_TOTAL2, Stc, Stc_REC, P, Q);
+     
+  //  [ty] = plotarGraficos(T,t,v,i,p,PMed,PRMS);
+    [ty] = plotarGraficos(T,p,PMed,PRMS,f,tetaVRadianos, tetaIRadianos,Vm,Im, esc, Iaux); // sem o gráfico da potência
+    flagContinuar = input(' Verificar outro caso? *Se Sim! >> Pressione 1. Se Não! >> Pressione qualquer caracter diferente de 1.');
+    if (flagContinuar == 1)
+                printf("Desta forma, será alterado somente as fases de v(t) e i(t), o valor de t para v(t) e i(t) e; V e I para t. \n ");
+    end            
+end
