@@ -43,7 +43,8 @@ function [t,dimensaoVetort]= duracaoTempoDeEstudoVett(T);
 endfunction
 
 function [tetaVGraus,tetaVRadianos]=leituraCalculoTetaV();
-  tetaVGraus=input('   Digite o Ângulo de FASE da Tensão Elétrica EM GRAUS [º] -->  '); 
+    disp("Defasamento resultante(Teta=TetaV-TetaI)deverá estar entre -90 graus e 90 graus ")
+  tetaVGraus=input('   Digite o Ângulo de FASE da Tensão Elétrica EM GRAUS [º] -->  ') 
   tetaVRadianos = (tetaVGraus*%pi)/180; // ângulo em radiano   
   
 endfunction
@@ -59,27 +60,42 @@ function[v,i,instante,Vt,It,Vk,instanteV,Ik,instanteI]=funcaoinstataneaDe_vi(Vm,
 
     instante = input("   Instante para obter os valores de V e I em milisegundos t(ms) -->  ");
     instante = instante*0.001; //(conversão milisegundo para segundos)
-    Vk = input("   Digite o Valor de V no intervalo (-Vm e +Vm) para obter o instante que V é atingido [V] -->  ");
-    Ik = input("   Digite o Valor de I no intervalo (-Im e +Im) para obter o instante que I é atingido [A] -->  ");
+    valoresVeI = 0;
+    while (valoresVeI == 0)
+        Vk = input("   Digite o Valor de V no intervalo (-Vm e +Vm) para obter o instante que V é atingido [V] -->  ");
+        Ik = input("   Digite o Valor de I no intervalo (-Im e +Im) para obter o instante que I é atingido [A] -->  ");
+        if ((abs(Vk)> Vm)||(abs(Ik)> Im))
+            disp(" Os dados de V ou I não podem ser maiores que os seus valores máximos");
+            disp("Vm = ", Vm);
+            disp("Im = ", Im);
+            valoresVeI = 0;
+        else
+            valoresVeI = 1;
+        end
+    end
+    
+    
+    
     v = Vm*sin(2*%pi*f*instante+tetaVRadianos);
     i = Im*sin(2*%pi*f*instante+tetaIRadianos); 
     // cálculo do valor de v e i para o mesmo instante t
     Vt = Vm*sin(2*%pi*f*instante+tetaVRadianos);
     It = Im*sin(2*%pi*f*instante+tetaIRadianos); 
     if Vk>=0 then //Verifica se a tensão está no semiciclo positivo
-        instanteV = abs(asin((Vk/Vm)-tetaVRadianos))/(2*%pi*f);
-    else instanteV = asin(abs(Vk/Vm)-tetaVRadianos)/(2*%pi*f) + 1/(2*f);
+        instanteV = (asin(Vk/Vm)-tetaVRadianos)/(2*%pi*f);
+    else instanteV = (asin(abs(Vk/Vm))-tetaVRadianos)/(2*%pi*f) + 1/(2*f);
     end
     if Ik>=0 then //Verifica se a corrente está no semiciclo positivo
-        instanteI = abs(asin((Ik/Im)-tetaIRadianos))/(2*%pi*f);
-    else instanteI = asin(abs(Ik/Im)-tetaIRadianos)/(2*%pi*f) + 1/(2*f);
+        instanteI = (asin(Ik/Im)-tetaIRadianos)/(2*%pi*f);
+    else instanteI = (asin(abs(Ik/Im))-tetaIRadianos)/(2*%pi*f) + 1/(2*f);
     end
+    
     
 endfunction
 
 function [FP]=calculoFatorDePotencia(tetaVGraus,tetaIGraus) 
-    FP = abs(cosd(abs((tetaVGraus-tetaIGraus))));  // Cáluclo do Fator de Potência
-    
+ //   FP = abs(cosd(abs((tetaVGraus-tetaIGraus))));  // Cáluclo do Fator de Potência
+    FP = cosd(abs((tetaVGraus-tetaIGraus))); 
 // VERIFICAR SE O FP ESTÁ EM FASE(RESISTIVO), ADIANTADO(CAPACITIVO) OU ATRASADO(INDUTIVO)   
 endfunction
  
@@ -263,7 +279,8 @@ Angulo_I = tetaIGraus;
 
 printf("   T)--> Fasor Corrente I = %4.3f%s %4.3f %s %s\n ",Modulo_I_RMS,"|__",Angulo_I,"[°]","[A]")
 printf(" ################ DIAGRAMA DE IMPEDÂNCIA ############ \n");
-   
+
+/////////   
 radV = %pi*Angulo_V/180;  // conversão para radianos
 radI = %pi*Angulo_I/180; 
 V_polar=Modulo_V_RMS*%e^(radV*%i);  // fasor i %i parte imaginária - forma polar
@@ -433,55 +450,63 @@ endfunction
 // são chamadas as rotinas 
 funcprot(0);
 clc;
- [f,Vm,Im,NroPeriodo]= leituraFVmImNroPeriodo();
-
- [Vrms,Irms]= calculoValoresEficazesVI(Vm,Im);
-
- [T]= calculoPeriodos(NroPeriodo);
-
- [t,dimensaoVetort]= duracaoTempoDeEstudoVett(T);
-
-
- flagContinuar = 1;
-
-while (flagContinuar == 1)
-
-  [tetaVGraus,tetaVRadianos]=leituraCalculoTetaV();
-  [tetaIGraus,tetaIRadianos]=leituraCalculoTetaI();
- 
-  [v,i,instante,Vt,It,Vk,instanteV,Ik,instanteI]=funcaoinstataneaDe_vi(Vm,Im,f,t,T,tetaVRadianos,tetaIRadianos); 
-   
-  [FP]=calculoFatorDePotencia(tetaVGraus,tetaIGraus);  
+while %t  // Início do loop principal
+    printf("\n");
+    printf(" | 1 - Circuito Monofásico |\n");
+    printf(" | 3 - Encerrar Programa   |\n");
+    Estudo = input(" Escolha o tipo de circuito desejado:  ");
     
-  [FPc,DefasamentoVI]=caracteristicaFP(tetaVGraus,tetaIGraus);
-  
-  [FPC, C, Itc, Ic, Icarga, Z_TOTAL, Z_TOTAL2, Stc, Stc_REC, P, Q, esc, Iaux]=correçãofatorpotencia(Vrms, Irms, tetaVGraus, tetaIGraus, FP, f)
-  
-   pm=((Vm*Im)/2)*FP; //Cáluclo potência média
-    
-   prms = Vrms*Irms*FP;         //Cáluclo potência eficaz
-    
-   Contador=1;
-
-    while (Contador <= dimensaoVetort)
-      PMed(Contador)=pm; 
-      PRMS(Contador)= prms;
-      Contador=Contador+1;
+    if Estudo == 3 then
+        exit;  // Sai do programa
     end
-    // potêrncia no instante t
-    pvt = (Vm*sin(2*%pi*f*instante+tetaVRadianos))*(Im*sin(2*%pi*f*instante+tetaIRadianos));
-   
-
-    pvi= i'*v;
- 
-    p=diag(pvi);  // potência instantânea para plotar o gráfico
-    ///// mostra os resultados no monitor
-    [REPORT]=RELATORIO(f,T,Vm,Vrms,Im,Irms,instante,Vk,instanteV,Ik,instanteI,Vt,It,pm,prms,pvt,tetaVGraus,tetaIGraus,DefasamentoVI,FP,FPc, FPC, C, Itc, Ic, Icarga, Z_TOTAL, Z_TOTAL2, Stc, Stc_REC, P, Q);
-     
-  //  [ty] = plotarGraficos(T,t,v,i,p,PMed,PRMS);
-    [ty] = plotarGraficos(T,p,PMed,PRMS,f,tetaVRadianos, tetaIRadianos,Vm,Im, esc, Iaux); // sem o gráfico da potência
-    flagContinuar = input(' Verificar outro caso? *Se Sim! >> Pressione 1. Se Não! >> Pressione qualquer caracter diferente de 1.');
-    if (flagContinuar == 1)
-                printf("Desta forma, será alterado somente as fases de v(t) e i(t), o valor de t para v(t) e i(t) e; V e I para t. \n ");
-    end            
-end
+    
+    if (Estudo == 1) then
+        // Início da lógica para circuito monofásico
+        
+        [f, Vm, Im, NroPeriodo] = leituraFVmImNroPeriodo();
+        [Vrms, Irms] = calculoValoresEficazesVI(Vm, Im);
+        [T] = calculoPeriodos(NroPeriodo);
+        [t, dimensaoVetort] = duracaoTempoDeEstudoVett(T);
+        
+        defasamentototal = 0;
+            
+        while (defasamentototal == 0)
+            [tetaVGraus, tetaVRadianos] = leituraCalculoTetaV();
+            [tetaIGraus, tetaIRadianos] = leituraCalculoTetaI();
+             TetaTotal = tetaVGraus - tetaIGraus;
+                
+             if ((TetaTotal < -90) || (TetaTotal > 90)) then
+                defasamentototal = 0;
+                disp("O defasamento total deve ser <= -90º ou <= +90º");
+              else
+                defasamentototal = 1;
+              end
+         end
+            
+         [v, i, instante, Vt, It, Vk, instanteV, Ik, instanteI] = funcaoinstataneaDe_vi(Vm, Im, f, t, T, tetaVRadianos, tetaIRadianos);
+         [FP] = calculoFatorDePotencia(tetaVGraus, tetaIGraus);
+         [FPc, DefasamentoVI] = caracteristicaFP(tetaVGraus, tetaIGraus);
+         [FPC, C, Itc, Ic, Icarga, Z_TOTAL, Z_TOTAL2, Stc, Stc_REC, P, Q, esc, Iaux] = correçãofatorpotencia(Vrms, Irms, tetaVGraus, tetaIGraus, FP, f);
+            
+         pm = ((Vm * Im) / 2) * FP;  // Cálculo potência média
+         prms = Vrms * Irms * FP;     // Cálculo potência eficaz
+            
+         Contador = 1;
+         while (Contador <= dimensaoVetort)
+            PMed(Contador) = pm;
+            PRMS(Contador) = prms;
+            Contador = Contador + 1;
+          end
+            
+            // Potência no instante t
+          pvt = (Vm * sin(2 * %pi * f * instante + tetaVRadianos)) * (Im * sin(2 * %pi * f * instante + tetaIRadianos));
+          pvi = i' * v;
+          p = diag(pvi);  // Potência instantânea para o gráfico
+            
+            // Mostra os resultados no monitor
+          [REPORT] = RELATORIO(f, T, Vm, Vrms, Im, Irms, instante, Vk, instanteV, Ik, instanteI, Vt, It, pm, prms, pvt, tetaVGraus, tetaIGraus, DefasamentoVI, FP, FPc, FPC, C, Itc, Ic, Icarga, Z_TOTAL, Z_TOTAL2, Stc, Stc_REC, P, Q);
+            
+            // [ty] = plotarGraficos(T, t, v, i, p, PMed, PRMS); 
+          [ty] = plotarGraficos(T, p, PMed, PRMS, f, tetaVRadianos, tetaIRadianos, Vm, Im, esc, Iaux);  // Sem gráfico da potência
+    end  // Fim do "if Estudo == 1"
+end  // Fim do loop principal "while %t"
