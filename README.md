@@ -1,1 +1,1 @@
-# Programa-para-sistema-el-trico
+# Programa-para-sistema-eletrico
