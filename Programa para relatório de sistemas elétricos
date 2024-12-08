@@ -18,6 +18,7 @@
 //                     início do Script
 //**************FUNÇÕES ESPECÍFICAS  - PET AutoNet/IFMT  **************************//
 
+// --> Função para ler valores básicos do circuito <-- //
 function [f,Vm,Im,NroPeriodo]= leituraFVmImNroPeriodo()
    f=input("   Digite o valor da frequência [HZ] -->  ");
    Vm=input('   Digite o valor da tensão elétrica máxima (Vm --> 0)[V] -->  ');
@@ -25,39 +26,41 @@ function [f,Vm,Im,NroPeriodo]= leituraFVmImNroPeriodo()
    NroPeriodo=input('   Digite o número de ciclos (>= 1) -->  '); 
 endfunction   
 
+// --> Função para calcular valores eficazes do circuitos <-- //
 function [Vrms,Irms]= calculoValoresEficazesVI(Vm,Im)
     
     Vrms = Vm/sqrt(2);  // cálculo tensão elétrica rms Vm/raiz(2))
     Irms = Im/sqrt(2); // cálculo corrente elétrica rms Im/raiz(2))
 endfunction
 
-
+// --> Função para calcular o número de ciclos no gráfico <-- //
 function [T]= calculoPeriodos(NroPeriodo)
     T=NroPeriodo*(1/f);  //número de períodos e CÁCULO DO PERÍODO
 endfunction
 
+// --> Função para calcular o intervalo de tempo <-- //
 function [t,dimensaoVetort]= duracaoTempoDeEstudoVett(T);
- //   t=-0.01:0.0001:T; // t - vetor tempo com passo igual 0.0001
  t=-T:0.0001:T;
     dimensaoVetort=length(t);  // tamnho do vetor t
 endfunction
 
+// --> Função para ler o valor do ângulo da tensão <-- //
 function [tetaVGraus,tetaVRadianos]=leituraCalculoTetaV();
-    disp("Defasamento resultante(Teta=TetaV-TetaI)deverá estar entre -90 graus e 90 graus ")
+    disp("Defasamento resultante(Teta=TetaV-TetaI)recomenda-se estar entre -90 graus e 90 graus ")
   tetaVGraus=input('   Digite o Ângulo de FASE da Tensão Elétrica EM GRAUS [º] -->  ') 
   tetaVRadianos = (tetaVGraus*%pi)/180; // ângulo em radiano   
   
 endfunction
 
+// --> Função para ler o valor do ângulo da corrente <-- //
 function  [tetaIGraus,tetaIRadianos]=leituraCalculoTetaI();
   tetaIGraus=input('   Digite o Ângulo de FASE da Corrente Elétrica EM GRAUS [º] -->  '); 
   tetaIRadianos = (tetaIGraus*%pi)/180; // ângulo em radiano
   
 endfunction
 
-function[v,i,instante,Vt,It,Vk,instanteV,Ik,instanteI]=funcaoinstataneaDe_vi(Vm,Im,f,t,T,tetaVRadianos,tetaIRadianos) 
-    //printf("*** Observação: /n **")
-
+// --> Função para calcular os valores instantâneos <-- //
+function[v,i,instante,Vt,It,Vk,instanteV,Ik,instanteI]=funcaoinstataneaDe_vi(Vm,Im,f,t,T,tetaVRadianos,tetaIRadianos)
     instante = input("   Instante para obter os valores de V e I em milisegundos t(ms) -->  ");
     instante = instante*0.001; //(conversão milisegundo para segundos)
     valoresVeI = 0;
@@ -74,8 +77,6 @@ function[v,i,instante,Vt,It,Vk,instanteV,Ik,instanteI]=funcaoinstataneaDe_vi(Vm,
         end
     end
     
-    
-    
     v = Vm*sin(2*%pi*f*instante+tetaVRadianos);
     i = Im*sin(2*%pi*f*instante+tetaIRadianos); 
     // cálculo do valor de v e i para o mesmo instante t
@@ -90,20 +91,20 @@ function[v,i,instante,Vt,It,Vk,instanteV,Ik,instanteI]=funcaoinstataneaDe_vi(Vm,
     else instanteI = (asin(abs(Ik/Im))-tetaIRadianos)/(2*%pi*f) + 1/(2*f);
     end
     
-    
 endfunction
 
+// --> Função para calcular o fator de potência <-- //
 function [FP]=calculoFatorDePotencia(tetaVGraus,tetaIGraus) 
- //   FP = abs(cosd(abs((tetaVGraus-tetaIGraus))));  // Cáluclo do Fator de Potência
-    FP = cosd(abs((tetaVGraus-tetaIGraus))); 
-// VERIFICAR SE O FP ESTÁ EM FASE(RESISTIVO), ADIANTADO(CAPACITIVO) OU ATRASADO(INDUTIVO)   
+    FP = cosd(abs((tetaVGraus-tetaIGraus)));    
 endfunction
- 
+
+// --> Função para verifica o tipo do circuito <-- //
 function [FPc,DefasamentoVI]=caracteristicaFP(tetaVGraus,tetaIGraus) 
     Flag1=0;
     Flag2=0;
     // VERIFICAR SE O FP ESTÁ EM FASE(RESISTIVO), ADIANTADO(CAPACITIVO) OU ATRASADO(INDUTIVO) 
     auxTetaVGraus = tetaVGraus;
+    //Elimina os arcos côngruos da tensão
     if (abs(auxTetaVGraus) >= 360)
         if (auxTetaVGraus > 0)
             while (auxTetaVGraus >= 360)
@@ -117,6 +118,7 @@ function [FPc,DefasamentoVI]=caracteristicaFP(tetaVGraus,tetaIGraus)
     end       
    
     auxTetaIGraus = tetaIGraus;
+    //Elimina os arcos côngruos da corrente
     if (abs(auxTetaIGraus) >= 360)
         if (auxTetaIGraus > 0)
             while (auxTetaIGraus >= 360)
@@ -146,16 +148,21 @@ function [FPc,DefasamentoVI]=caracteristicaFP(tetaVGraus,tetaIGraus)
        Flag2 = 1; 
     end  
     disp(Flag1) 
-    if ((Flag1 == 0)&(Flag2 == 0)) then      
-          if (auxTetaIGraus > auxTetaVGraus) then
+    if ((Flag1 == 0)&(Flag2 == 0)) then
+          fpangle = auxTetaVGraus-auxTetaIGraus
+          while(fpangle > 90)
+              fpangle = auxTetaVGraus-auxTetaIGraus - 360;
+          end
+          if (fpangle < 0) then
                   FPc = "Adiantado (capacitivo)";   
              else
                  FPc = "Atrasado (indutivo)"; 
            end      
-   end
-         DefasamentoVI = abs(auxTetaVGraus - auxTetaIGraus);
+   end 
+         DefasamentoVI = abs(fpangle);
 endfunction
 
+// --> Função para calcular os valores após correção do fator de potência <-- //
 function [FPC, C, Itc, Ic, Icarga, Z_TOTAL, Z_TOTAL2, Stc, Stc_REC, P, Q, esc, Iaux]=correçãofatorpotencia(Vrms, Irms, tetaVGraus, tetaIGraus, FP, f)
     Modulo_V_RMS = Vrms; 
     Angulo_V = tetaVGraus;
@@ -244,6 +251,7 @@ function [FPC, C, Itc, Ic, Icarga, Z_TOTAL, Z_TOTAL2, Stc, Stc_REC, P, Q, esc, I
     
 endfunction
 
+// --> Função para mostrar no monitor o relatório do circuito <-- //
 function [REPORT]=RELATORIO(f,T,Vm,Vrms,Im,Irms,instante,Vk,instanteV,Ik,instanteI,Vt,It,pm,prms,pvt,tetaVGraus,tetaIGraus,DefasamentoVI, FP,FPc, FPC, C, Itc,Ic, Icarga, Z_TOTAL, Z_TOTAL2, Stc, Stc_REC, P, Q);
 
 printf("\n+++++++++              CONTRIBUIÇÃO PET AutoNet/IFMT   +++++++++ \n");
@@ -327,6 +335,7 @@ printf(" ################ CONTRIBUIÇÃO PET AutoNet/IFMT ############ \n");
   REPORT=1;  
 endfunction
 
+// --> Função para criar o gráfico  <-- //
 function [ty]= plotarGraficos(T,p,PMed,PRMS,f,tetaVRadianos, tetaIRadianos,Vm,Im, esc, Iaux) 
      //set("current_figure", 0);
      t=-T:0.0001:T;
@@ -433,13 +442,6 @@ function [ty]= plotarGraficos(T,p,PMed,PRMS,f,tetaVRadianos, tetaIRadianos,Vm,Im
          end
      end
      
-     //a.x_location = "middle"; 
-     //a.y_location = "middle";  
-     /*legend(['v(t)';'i(t)';'p(t)';'Prms(t)'])
-     xlabel('TEMPO[s]')
-     ylabel('  v,  i,  p,  PRMS') */
-     //xset("thickness",1)
-    // ty=locate(3,1)
     ty=1;
      
      
@@ -447,7 +449,6 @@ endfunction
     
 // ************Término funções específicas   ***********************
 // ***************INÍCIO PROGRAMA PRINCIPAL  ***********************
-// são chamadas as rotinas 
 funcprot(0);
 clc;
 while %t  // Início do loop principal
@@ -467,21 +468,10 @@ while %t  // Início do loop principal
         [Vrms, Irms] = calculoValoresEficazesVI(Vm, Im);
         [T] = calculoPeriodos(NroPeriodo);
         [t, dimensaoVetort] = duracaoTempoDeEstudoVett(T);
-        
-        defasamentototal = 0;
-            
-        while (defasamentototal == 0)
-            [tetaVGraus, tetaVRadianos] = leituraCalculoTetaV();
-            [tetaIGraus, tetaIRadianos] = leituraCalculoTetaI();
-             TetaTotal = tetaVGraus - tetaIGraus;
-                
-             if ((TetaTotal < -90) || (TetaTotal > 90)) then
-                defasamentototal = 0;
-                disp("O defasamento total deve ser <= -90º ou <= +90º");
-              else
-                defasamentototal = 1;
-              end
-         end
+
+         [tetaVGraus, tetaVRadianos] = leituraCalculoTetaV();
+         [tetaIGraus, tetaIRadianos] = leituraCalculoTetaI();
+         TetaTotal = tetaVGraus - tetaIGraus;
             
          [v, i, instante, Vt, It, Vk, instanteV, Ik, instanteI] = funcaoinstataneaDe_vi(Vm, Im, f, t, T, tetaVRadianos, tetaIRadianos);
          [FP] = calculoFatorDePotencia(tetaVGraus, tetaIGraus);
@@ -505,8 +495,7 @@ while %t  // Início do loop principal
             
             // Mostra os resultados no monitor
           [REPORT] = RELATORIO(f, T, Vm, Vrms, Im, Irms, instante, Vk, instanteV, Ik, instanteI, Vt, It, pm, prms, pvt, tetaVGraus, tetaIGraus, DefasamentoVI, FP, FPc, FPC, C, Itc, Ic, Icarga, Z_TOTAL, Z_TOTAL2, Stc, Stc_REC, P, Q);
-            
-            // [ty] = plotarGraficos(T, t, v, i, p, PMed, PRMS); 
+             
           [ty] = plotarGraficos(T, p, PMed, PRMS, f, tetaVRadianos, tetaIRadianos, Vm, Im, esc, Iaux);  // Sem gráfico da potência
     end  // Fim do "if Estudo == 1"
 end  // Fim do loop principal "while %t"
